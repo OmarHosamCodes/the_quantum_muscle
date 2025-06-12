@@ -1,0 +1,15 @@
+{
+	"name": "quantum_muscle",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev:mobile": "cd mobile && flutter run -d",
+		"dev:web": "cd web && bun run dev",
+		"dev:supabase": "supabase start",
+		"dev": "concurrently \"npm run dev:mobile\" \"npm run dev:web\" \"npm run dev:supabase\"",
+		"build:mobile": "cd mobile && flutter build apk",
+		"build:web": "cd web && bun run build",
+		"build:supabase": "supabase db push",
+		"build": "concurrently \"npm run build:mobile\" \"npm run build:web\" \"npm run build:supabase\""
+	}
+}
