@@ -2,10 +2,14 @@ import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Screen } from "@/src/components/ui/Screen";
 import { useAuth } from "@/src/hooks/useAuth";
+import { useWorkout } from "@/src/hooks/useWorkout";
+import type {
+	CompletedSet,
+	UpdateSetData,
+	WorkoutExercise,
+} from "@/src/lib/workoutService";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
 import {
 	Alert,
 	ScrollView,
@@ -16,111 +20,17 @@ import {
 	View,
 } from "react-native";
 
-// Mock data for demonstration
-const mockWorkout = {
-	id: "1",
-	title: "Upper Body Strength",
-	description: "Focus on chest, shoulders, and triceps",
-	duration_minutes: 45,
-	exercises: [
-		{
-			id: "1",
-			name: "Bench Press",
-			sets: 3,
-			reps: "8-10",
-			weight_kg: 60,
-			completed_sets: [
-				{ set_number: 1, reps: 8, weight_kg: 60, completed: true },
-				{ set_number: 2, reps: 8, weight_kg: 60, completed: true },
-				{ set_number: 3, reps: 7, weight_kg: 60, completed: false },
-			],
-		},
-		{
-			id: "2",
-			name: "Overhead Press",
-			sets: 3,
-			reps: "8-10",
-			weight_kg: 40,
-			completed_sets: [
-				{ set_number: 1, reps: 8, weight_kg: 40, completed: true },
-				{ set_number: 2, reps: 8, weight_kg: 40, completed: false },
-				{ set_number: 3, reps: 0, weight_kg: 40, completed: false },
-			],
-		},
-		{
-			id: "3",
-			name: "Dumbbell Rows",
-			sets: 3,
-			reps: "10-12",
-			weight_kg: 25,
-			completed_sets: [
-				{ set_number: 1, reps: 10, weight_kg: 25, completed: true },
-				{ set_number: 2, reps: 0, weight_kg: 25, completed: false },
-				{ set_number: 3, reps: 0, weight_kg: 25, completed: false },
-			],
-		},
-		{
-			id: "4",
-			name: "Tricep Dips",
-			sets: 3,
-			reps: "8-12",
-			weight_kg: 0, // Bodyweight
-			completed_sets: [
-				{ set_number: 1, reps: 0, weight_kg: 0, completed: false },
-				{ set_number: 2, reps: 0, weight_kg: 0, completed: false },
-				{ set_number: 3, reps: 0, weight_kg: 0, completed: false },
-			],
-		},
-	],
-};
-
-// Mock function to fetch workout details
-const fetchWorkoutDetails = async (workoutId: string) => {
-	// Simulate API delay
-	await new Promise((resolve) => setTimeout(resolve, 500));
-
-	// In a real app, this would fetch from Supabase
-	return mockWorkout;
-};
-
-// Mock function to update set completion
-const updateSetCompletion = async (
-	workoutId: string,
-	exerciseId: string,
-	setNumber: number,
-	data: any,
-) => {
-	// Simulate API delay
-	await new Promise((resolve) => setTimeout(resolve, 300));
-
-	// In a real app, this would update Supabase
-	console.log("Updating set:", { workoutId, exerciseId, setNumber, data });
-	return { success: true };
-};
-
 export default function WorkoutScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const { user } = useAuth();
-	const queryClient = useQueryClient();
-	const [activeExercise, setActiveExercise] = useState<string | null>(null);
 
 	const {
-		data: workout,
+		workout,
 		isLoading,
 		error,
-	} = useQuery({
-		queryKey: ["workout", id],
-		queryFn: () => fetchWorkoutDetails(id),
-		enabled: !!id,
-	});
-
-	const updateSetMutation = useMutation({
-		mutationFn: ({ exerciseId, setNumber, data }: any) =>
-			updateSetCompletion(id, exerciseId, setNumber, data),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["workout", id] });
-		},
-	});
+		updateSet,
+		completeWorkout: completeWorkoutMutation,
+	} = useWorkout(id);
 
 	const handleCompleteWorkout = () => {
 		Alert.alert(
@@ -131,10 +41,17 @@ export default function WorkoutScreen() {
 				{
 					text: "Complete",
 					style: "default",
-					onPress: () => {
-						// TODO: Implement workout completion
-						Alert.alert("Success", "Workout completed!");
-						router.back();
+					onPress: async () => {
+						try {
+							if (user?.id) {
+								completeWorkoutMutation({ userId: user.id });
+								Alert.alert("Success", "Workout completed!");
+								router.back();
+							}
+						} catch (err) {
+							console.error("Failed to complete workout:", err);
+							Alert.alert("Error", "Failed to complete workout");
+						}
 					},
 				},
 			],
@@ -153,17 +70,18 @@ export default function WorkoutScreen() {
 		const set = exercise.completed_sets.find((s) => s.set_number === setNumber);
 		if (!set) return;
 
-		const updatedData = {
-			...set,
-			[field]: field === "reps" ? parseInt(value) || 0 : parseFloat(value) || 0,
+		const updatedData: UpdateSetData = {
+			reps: field === "reps" ? parseInt(value) || 0 : set.reps,
+			weight_kg: field === "weight_kg" ? parseFloat(value) || 0 : set.weight_kg,
 			completed: true,
 		};
 
-		updateSetMutation.mutate({ exerciseId, setNumber, data: updatedData });
+		updateSet({ exerciseId, setNumber, data: updatedData });
 	};
 
-	const getCompletedSetsCount = (exercise: any) => {
-		return exercise.completed_sets.filter((set: any) => set.completed).length;
+	const getCompletedSetsCount = (exercise: WorkoutExercise) => {
+		return exercise.completed_sets.filter((set: CompletedSet) => set.completed)
+			.length;
 	};
 
 	const getTotalCompletedSets = () => {
@@ -212,7 +130,7 @@ export default function WorkoutScreen() {
 						<Ionicons name="arrow-back" size={24} color="#1e293b" />
 					</TouchableOpacity>
 					<View style={styles.headerInfo}>
-						<Text style={styles.workoutTitle}>{workout.title}</Text>
+						<Text style={styles.workoutTitle}>{workout.name}</Text>
 						<Text style={styles.workoutSubtitle}>{workout.description}</Text>
 					</View>
 					<TouchableOpacity style={styles.moreButton}>
@@ -245,7 +163,7 @@ export default function WorkoutScreen() {
 					style={styles.exercisesContainer}
 					showsVerticalScrollIndicator={false}
 				>
-					{workout.exercises.map((exercise, index) => (
+					{workout.exercises.map((exercise) => (
 						<Card key={exercise.id} style={styles.exerciseCard}>
 							<View style={styles.exerciseHeader}>
 								<View style={styles.exerciseInfo}>
@@ -266,7 +184,7 @@ export default function WorkoutScreen() {
 
 							{/* Sets */}
 							<View style={styles.setsContainer}>
-								{exercise.completed_sets.map((set, setIndex) => (
+								{exercise.completed_sets.map((set) => (
 									<View key={set.set_number} style={styles.setRow}>
 										<View style={styles.setHeader}>
 											<Text style={styles.setNumber}>Set {set.set_number}</Text>
