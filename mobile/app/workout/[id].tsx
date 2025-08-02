@@ -30,6 +30,7 @@ export default function WorkoutScreen() {
 		error,
 		updateSet,
 		completeWorkout: completeWorkoutMutation,
+		removeExercise,
 	} = useWorkout(id);
 
 	const handleCompleteWorkout = () => {
@@ -77,6 +78,23 @@ export default function WorkoutScreen() {
 		};
 
 		updateSet({ exerciseId, setNumber, data: updatedData });
+	};
+
+	const handleDeleteExercise = (exerciseId: string, exerciseName: string) => {
+		Alert.alert(
+			"Delete Exercise",
+			`Are you sure you want to delete "${exerciseName}"? This will remove all sets and data for this exercise.`,
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: () => {
+						removeExercise(exerciseId);
+					},
+				},
+			],
+		);
 	};
 
 	const getCompletedSetsCount = (exercise: WorkoutExercise) => {
@@ -175,10 +193,20 @@ export default function WorkoutScreen() {
 											: " • Bodyweight"}
 									</Text>
 								</View>
-								<View style={styles.exerciseProgress}>
-									<Text style={styles.progressCount}>
-										{getCompletedSetsCount(exercise)}/{exercise.sets}
-									</Text>
+								<View style={styles.exerciseActions}>
+									<View style={styles.exerciseProgress}>
+										<Text style={styles.progressCount}>
+											{getCompletedSetsCount(exercise)}/{exercise.sets}
+										</Text>
+									</View>
+									<TouchableOpacity
+										style={styles.deleteButton}
+										onPress={() =>
+											handleDeleteExercise(exercise.id, exercise.name)
+										}
+									>
+										<Ionicons name="trash-outline" size={18} color="#ef4444" />
+									</TouchableOpacity>
 								</View>
 							</View>
 
@@ -247,6 +275,27 @@ export default function WorkoutScreen() {
 							</View>
 						</Card>
 					))}
+
+					{/* Add Exercise Button */}
+					<Card style={styles.addExerciseCard}>
+						<TouchableOpacity
+							style={styles.addExerciseButton}
+							onPress={() => router.push(`/create-exercise?workoutId=${id}`)}
+						>
+							<View style={styles.addExerciseContent}>
+								<View style={styles.addExerciseIcon}>
+									<Ionicons name="add" size={24} color="#0891b2" />
+								</View>
+								<View style={styles.addExerciseText}>
+									<Text style={styles.addExerciseTitle}>Add Exercise</Text>
+									<Text style={styles.addExerciseSubtitle}>
+										Add a new exercise to this workout
+									</Text>
+								</View>
+								<Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+							</View>
+						</TouchableOpacity>
+					</Card>
 				</ScrollView>
 
 				{/* Complete Workout Button */}
@@ -367,6 +416,14 @@ const styles = StyleSheet.create({
 	exerciseProgress: {
 		alignItems: "center",
 	},
+	exerciseActions: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+	},
+	deleteButton: {
+		padding: 4,
+	},
 	progressCount: {
 		fontSize: 14,
 		fontWeight: "600",
@@ -422,5 +479,39 @@ const styles = StyleSheet.create({
 		borderTopWidth: 1,
 		borderTopColor: "#e2e8f0",
 		backgroundColor: "#ffffff",
+	},
+	addExerciseCard: {
+		marginBottom: 16,
+		padding: 0,
+		overflow: "hidden",
+	},
+	addExerciseButton: {
+		padding: 16,
+	},
+	addExerciseContent: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+	},
+	addExerciseIcon: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: "#f0f9ff",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	addExerciseText: {
+		flex: 1,
+	},
+	addExerciseTitle: {
+		fontSize: 16,
+		fontWeight: "600",
+		color: "#1e293b",
+		marginBottom: 2,
+	},
+	addExerciseSubtitle: {
+		fontSize: 14,
+		color: "#64748b",
 	},
 });

@@ -41,6 +41,34 @@ export const useWorkout = (workoutId: string | undefined) => {
 		},
 	});
 
+	// Add exercise to workout
+	const addExerciseMutation = useMutation({
+		mutationFn: (exerciseData: {
+			name: string;
+			target_muscle: string;
+			content_type?: "image" | "video" | "text" | null;
+			content_url?: string;
+		}) => {
+			if (!workoutId) throw new Error("No workout ID provided");
+			return workoutService.addExerciseToWorkout({
+				...exerciseData,
+				workout_id: workoutId,
+			});
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["workout", workoutId] });
+		},
+	});
+
+	// Remove exercise from workout
+	const removeExerciseMutation = useMutation({
+		mutationFn: (exerciseId: string) =>
+			workoutService.removeExerciseFromWorkout(exerciseId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["workout", workoutId] });
+		},
+	});
+
 	// Get workout progress
 	const progressQuery = useQuery({
 		queryKey: ["workout-progress", workoutId],
@@ -67,6 +95,12 @@ export const useWorkout = (workoutId: string | undefined) => {
 
 		completeWorkout: completeWorkoutMutation.mutate,
 		isCompletingWorkout: completeWorkoutMutation.isPending,
+
+		addExercise: addExerciseMutation.mutate,
+		isAddingExercise: addExerciseMutation.isPending,
+
+		removeExercise: removeExerciseMutation.mutate,
+		isRemovingExercise: removeExerciseMutation.isPending,
 
 		// Refetch
 		refetch: workoutQuery.refetch,

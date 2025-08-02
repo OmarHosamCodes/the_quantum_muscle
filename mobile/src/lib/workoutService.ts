@@ -266,4 +266,56 @@ export const workoutService = {
 
 		return data;
 	},
+
+	// Add exercise to a workout
+	async addExerciseToWorkout(exerciseData: {
+		name: string;
+		target_muscle: string;
+		workout_id: string;
+		content_type?: "image" | "video" | "text" | null;
+		content_url?: string;
+	}) {
+		const { data, error } = await supabase
+			.from("exercises")
+			.insert({
+				name: exerciseData.name,
+				target_muscle: exerciseData.target_muscle,
+				workout_id: exerciseData.workout_id,
+				content_type: exerciseData.content_type || null,
+				content_url: exerciseData.content_url || null,
+			})
+			.select()
+			.single();
+
+		if (error) {
+			throw new Error(`Failed to add exercise: ${error.message}`);
+		}
+
+		return data;
+	},
+
+	// Remove exercise from workout
+	async removeExerciseFromWorkout(exerciseId: string) {
+		// First delete all exercise sets
+		const { error: setsError } = await supabase
+			.from("exercise_sets")
+			.delete()
+			.eq("exercise_id", exerciseId);
+
+		if (setsError) {
+			throw new Error(`Failed to delete exercise sets: ${setsError.message}`);
+		}
+
+		// Then delete the exercise
+		const { error: exerciseError } = await supabase
+			.from("exercises")
+			.delete()
+			.eq("id", exerciseId);
+
+		if (exerciseError) {
+			throw new Error(`Failed to delete exercise: ${exerciseError.message}`);
+		}
+
+		return { success: true };
+	},
 };
