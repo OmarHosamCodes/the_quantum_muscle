@@ -132,7 +132,7 @@ export const AccountScreen: React.FC = () => {
 						<View style={styles.card}>
 							<Button
 								title="Edit Profile"
-								variant="outline"
+								// variant="outline"
 								onPress={() => {
 									// TODO: Navigate to edit profile screen
 									Alert.alert(
@@ -145,7 +145,7 @@ export const AccountScreen: React.FC = () => {
 
 							<Button
 								title="Change Password"
-								variant="outline"
+								// variant="outline"
 								onPress={() => {
 									// TODO: Navigate to change password screen
 									Alert.alert(
@@ -158,11 +158,11 @@ export const AccountScreen: React.FC = () => {
 
 							<Button
 								title="Sign Out"
-								variant="outline"
+								variant="secondary"
 								onPress={handleSignOut}
 								loading={actionLoading}
 								disabled={actionLoading}
-								style={[styles.actionButton, styles.signOutButton]}
+								style={{ ...styles.actionButton, ...styles.signOutButton }}
 								textStyle={styles.signOutButtonText}
 							/>
 						</View>
