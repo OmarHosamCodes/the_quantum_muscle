@@ -6,7 +6,7 @@ import { type User, userSchema } from "../schemas/auth";
 // Types for user profile operations
 interface UpdateProfileData {
 	name?: string;
-	avatar_url?: string;
+	profile_image_url?: string;
 }
 
 // Query to fetch user profile
@@ -17,7 +17,7 @@ export const useUserProfile = (userId?: string) => {
 			if (!userId) throw new Error("User ID is required");
 
 			const { data, error } = await supabase
-				.from("profiles")
+				.from("users")
 				.select("*")
 				.eq("id", userId)
 				.single();
@@ -43,8 +43,11 @@ export const useUpdateProfile = () => {
 			updates: UpdateProfileData;
 		}) => {
 			const { data, error } = await supabase
-				.from("profiles")
-				.update(updates)
+				.from("users")
+				.update({
+					name: updates.name,
+					profile_image_url: updates.profile_image_url,
+				})
 				.eq("id", userId)
 				.select()
 				.single();
@@ -74,8 +77,11 @@ export const useUpdateProfileOptimistic = () => {
 			updates: UpdateProfileData;
 		}) => {
 			const { data, error } = await supabase
-				.from("profiles")
-				.update(updates)
+				.from("users")
+				.update({
+					name: updates.name,
+					profile_image_url: updates.profile_image_url,
+				})
 				.eq("id", userId)
 				.select()
 				.single();
@@ -97,7 +103,9 @@ export const useUpdateProfileOptimistic = () => {
 			if (previousProfile) {
 				queryClient.setQueryData(["userProfile", userId], {
 					...previousProfile,
-					...updates,
+					name: updates.name || previousProfile.name,
+					profile_image_url:
+						updates.profile_image_url || previousProfile.profile_image_url,
 				});
 			}
 

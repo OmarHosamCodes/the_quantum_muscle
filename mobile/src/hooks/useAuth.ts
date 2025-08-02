@@ -17,10 +17,16 @@ const mapSupabaseUser = (
 		id: supabaseUser.id,
 		email: supabaseUser.email,
 		name: supabaseUser.user_metadata?.name || supabaseUser.email,
-		avatar_url: supabaseUser.user_metadata?.avatar_url,
+		profile_image_url: supabaseUser.user_metadata?.avatar_url || null,
 		user_type: supabaseUser.user_metadata?.user_type || "trainee",
-		created_at: supabaseUser.created_at || new Date().toISOString(),
-		updated_at: supabaseUser.updated_at || new Date().toISOString(),
+		rat_id: `rat_${supabaseUser.id.slice(0, 8)}`, // Generate a simple rat_id
+		age: null,
+		bio: null,
+		phone: null,
+		follower_count: null,
+		following_count: null,
+		created_at: supabaseUser.created_at || null,
+		updated_at: supabaseUser.updated_at || null,
 	};
 };
 

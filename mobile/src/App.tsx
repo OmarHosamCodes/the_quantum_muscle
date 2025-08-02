@@ -1,8 +1,8 @@
+import { Redirect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type React from "react";
 import { Text, View } from "react-native";
 import "../global.css";
-import { AccountScreen } from "./components/account/AccountScreen";
 import { LoadingScreen } from "./components/ui/LoadingScreen";
 import { useAuth } from "./hooks/useAuth";
 import { AuthScreenWithZod } from "./screens/AuthScreenWithZod";
@@ -24,10 +24,15 @@ export const App: React.FC = () => {
 			return <LoadingScreen message="Initializing..." />;
 		}
 
+		// If authenticated, redirect to the main app with tab navigation
+		if (isAuthenticated) {
+			return <Redirect href="/(tabs)/dashboard" />;
+		}
+
 		return (
 			<>
 				<StatusBar style="auto" />
-				{isAuthenticated ? <AccountScreen /> : <AuthScreenWithZod />}
+				<AuthScreenWithZod />
 			</>
 		);
 	} catch (error) {

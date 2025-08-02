@@ -1,111 +1,119 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { supabase } from "../lib/supabase";
 
-// Mock function to fetch posts with pagination
-const fetchPosts = async ({ pageParam = 0 }) => {
-	// Simulate API delay
-	await new Promise((resolve) => setTimeout(resolve, 1000));
+// Type for the post data
+interface Post {
+	id: string;
+	author: {
+		id: string;
+		name: string;
+		avatar_url: string | null;
+		user_type: "trainee" | "trainer";
+	};
+	content: string;
+	media_url: string | null;
+	likes_count: number;
+	comments_count: number;
+	created_at: string;
+	is_liked: boolean;
+}
 
-	// Mock data - in a real app, this would fetch from Supabase
-	const mockPosts = [
-		{
-			id: "1",
-			author: {
-				id: "1",
-				name: "Sarah Johnson",
-				avatar_url: null,
-				user_type: "trainee",
-			},
-			content:
-				"Just completed an amazing upper body workout! 💪 The new program my trainer created is really pushing me to my limits.",
-			media_url: null,
-			likes_count: 24,
-			comments_count: 8,
-			created_at: "2024-01-15T10:30:00Z",
-			is_liked: false,
-		},
-		{
-			id: "2",
-			author: {
-				id: "2",
-				name: "Mike Chen",
-				avatar_url: null,
-				user_type: "trainee",
-			},
-			content:
-				"Progress update: Hit a new PR on deadlifts today! 315lbs for 3 reps. Feeling stronger every week.",
-			media_url: null,
-			likes_count: 42,
-			comments_count: 15,
-			created_at: "2024-01-15T09:15:00Z",
-			is_liked: true,
-		},
-		{
-			id: "3",
-			author: {
-				id: "3",
-				name: "Emma Davis",
-				avatar_url: null,
-				user_type: "trainee",
-			},
-			content:
-				"Started my fitness journey 3 months ago and I'm already seeing incredible results. Consistency is key! 🎯",
-			media_url: null,
-			likes_count: 67,
-			comments_count: 23,
-			created_at: "2024-01-15T08:45:00Z",
-			is_liked: false,
-		},
-		{
-			id: "4",
-			author: {
-				id: "4",
-				name: "John Smith",
-				avatar_url: null,
-				user_type: "trainer",
-			},
-			content:
-				"Proud of my clients' progress this week! Remember, small consistent efforts lead to big results. Keep pushing! 💪",
-			media_url: null,
-			likes_count: 89,
-			comments_count: 12,
-			created_at: "2024-01-15T07:30:00Z",
-			is_liked: false,
-		},
-		{
-			id: "5",
-			author: {
-				id: "5",
-				name: "Lisa Brown",
-				avatar_url: null,
-				user_type: "trainer",
-			},
-			content:
-				"New program alert! Just created a 12-week strength program for intermediate lifters. DM me for details!",
-			media_url: null,
-			likes_count: 156,
-			comments_count: 34,
-			created_at: "2024-01-14T16:20:00Z",
-			is_liked: true,
-		},
-	];
+// Fetch posts with pagination from Supabase
+const fetchPosts = async ({ pageParam = 0 }, currentUserId?: string) => {
+	const pageSize = 10;
+	const from = pageParam * pageSize;
+	const to = from + pageSize - 1;
 
-	// Simulate pagination
-	const start = pageParam * 5;
-	const end = start + 5;
-	const posts = mockPosts.slice(start, end);
+	// Fetch posts with author information, likes count, and comments count
+	const { data: posts, error } = await supabase
+		.from("content")
+		.select(`
+			id,
+			title,
+			description,
+			content_url,
+			created_at,
+			author:users!content_author_id_fkey (
+				id,
+				name,
+				profile_image_url,
+				user_type
+			)
+		`)
+		.order("created_at", { ascending: false })
+		.range(from, to);
+
+	if (error) {
+		throw new Error(`Failed to fetch posts: ${error.message}`);
+	}
+
+	if (!posts) {
+		return {
+			posts: [],
+			nextPage: undefined,
+			hasMore: false,
+		};
+	}
+
+	// For each post, get likes count, comments count, and check if current user liked it
+	const postsWithCounts = await Promise.all(
+		posts.map(async (post) => {
+			// Get likes count
+			const { count: likesCount } = await supabase
+				.from("content_likes")
+				.select("*", { count: "exact", head: true })
+				.eq("content_id", post.id);
+
+			// Get comments count
+			const { count: commentsCount } = await supabase
+				.from("content_comments")
+				.select("*", { count: "exact", head: true })
+				.eq("content_id", post.id);
+
+			// Check if current user liked this post
+			let isLiked = false;
+			if (currentUserId) {
+				const { data: userLike } = await supabase
+					.from("content_likes")
+					.select("content_id")
+					.eq("content_id", post.id)
+					.eq("user_id", currentUserId)
+					.single();
+
+				isLiked = !!userLike;
+			}
+
+			return {
+				id: post.id,
+				author: {
+					id: post.author?.id || "",
+					name: post.author?.name || "Unknown",
+					avatar_url: post.author?.profile_image_url || null,
+					user_type: post.author?.user_type || "trainee",
+				},
+				content: post.description || post.title || "",
+				media_url: post.content_url || null,
+				likes_count: likesCount || 0,
+				comments_count: commentsCount || 0,
+				created_at: post.created_at || new Date().toISOString(),
+				is_liked: isLiked,
+			} as Post;
+		}),
+	);
 
 	return {
-		posts,
-		nextPage: posts.length === 5 ? pageParam + 1 : undefined,
-		hasMore: posts.length === 5,
+		posts: postsWithCounts,
+		nextPage: postsWithCounts.length === pageSize ? pageParam + 1 : undefined,
+		hasMore: postsWithCounts.length === pageSize,
 	};
 };
 
-export const usePosts = () => {
+export const usePosts = (currentUserId?: string) => {
 	return useInfiniteQuery({
-		queryKey: ["posts"],
-		queryFn: fetchPosts,
+		queryKey: ["posts", currentUserId],
+		queryFn: ({ pageParam }) => fetchPosts({ pageParam }, currentUserId),
 		getNextPageParam: (lastPage) => lastPage.nextPage,
 		initialPageParam: 0,
+		staleTime: 5 * 60 * 1000, // 5 minutes
 	});
 };

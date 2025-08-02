@@ -51,15 +51,21 @@ export type SignInFormData = z.infer<typeof signInSchema>;
 export type SignUpFormData = z.infer<typeof signUpSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
-// User schema
+// User schema - updated to match database structure
 export const userSchema = z.object({
 	id: z.string(),
 	email: z.string().email(),
-	name: z.string().optional(),
-	avatar_url: z.string().url().optional(),
+	name: z.string(),
+	profile_image_url: z.string().url().nullable().optional(),
 	user_type: userTypeSchema,
-	created_at: z.string(),
-	updated_at: z.string(),
+	rat_id: z.string(),
+	age: z.number().nullable().optional(),
+	bio: z.string().nullable().optional(),
+	phone: z.string().nullable().optional(),
+	follower_count: z.number().nullable().optional(),
+	following_count: z.number().nullable().optional(),
+	created_at: z.string().nullable().optional(),
+	updated_at: z.string().nullable().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;
