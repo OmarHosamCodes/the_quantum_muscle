@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import type React from "react";
+import "../global.css";
 import { AccountScreen } from "./components/account/AccountScreen";
 import { LoadingScreen } from "./components/ui/LoadingScreen";
 import { useAuth } from "./hooks/useAuth";

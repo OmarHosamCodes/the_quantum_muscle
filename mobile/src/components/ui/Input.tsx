@@ -1,7 +1,6 @@
 import type React from "react";
 import { useState } from "react";
 import {
-	StyleSheet,
 	Text,
 	TextInput,
 	type TextInputProps,
@@ -9,12 +8,6 @@ import {
 	View,
 	type ViewStyle,
 } from "react-native";
-import {
-	BorderRadius,
-	Colors,
-	Spacing,
-	Typography,
-} from "../../constants/theme";
 
 interface InputProps extends Omit<TextInputProps, "style"> {
 	label?: string;
@@ -44,31 +37,50 @@ export const Input: React.FC<InputProps> = ({
 
 	const hasError = !!error;
 
+	// Dynamic classes
+	const containerClasses = "mb-4";
+	let labelClasses = "text-sm font-medium text-gray-600 mb-1";
+	let inputContainerClasses =
+		"flex-row items-center border rounded-md bg-white min-h-[48px]";
+	let inputClasses = "flex-1 text-base text-gray-900 px-4 py-2";
+	let helperTextClasses = "text-xs text-gray-600 mt-1 ml-1";
+
+	// Error states
+	if (hasError) {
+		labelClasses += " text-red-500";
+		inputContainerClasses += " border-red-500 border-2";
+		helperTextClasses += " text-red-500";
+	} else if (isFocused) {
+		inputContainerClasses += " border-indigo-600 border-2";
+	} else {
+		inputContainerClasses += " border-gray-300";
+	}
+
+	// Icon padding adjustments
+	if (leftIcon) {
+		inputClasses += " pl-1";
+	}
+	if (rightIcon) {
+		inputClasses += " pr-1";
+	}
+
 	return (
-		<View style={[styles.container, containerStyle]}>
+		<View className={containerClasses} style={containerStyle}>
 			{label && (
-				<Text style={[styles.label, labelStyle, hasError && styles.labelError]}>
+				<Text className={labelClasses} style={labelStyle}>
 					{label}
-					{required && <Text style={styles.required}> *</Text>}
+					{required && <Text className="text-red-500"> *</Text>}
 				</Text>
 			)}
 
-			<View
-				style={[
-					styles.inputContainer,
-					isFocused && styles.inputContainerFocused,
-					hasError && styles.inputContainerError,
-				]}
-			>
-				{leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
+			<View className={inputContainerClasses}>
+				{leftIcon && (
+					<View className="pl-4 justify-center items-center">{leftIcon}</View>
+				)}
 
 				<TextInput
-					style={[
-						styles.input,
-						leftIcon ? styles.inputWithLeftIcon : null,
-						rightIcon ? styles.inputWithRightIcon : null,
-						inputStyle,
-					]}
+					className={inputClasses}
+					style={inputStyle}
 					onFocus={(e) => {
 						setIsFocused(true);
 						textInputProps.onFocus?.(e);
@@ -77,98 +89,18 @@ export const Input: React.FC<InputProps> = ({
 						setIsFocused(false);
 						textInputProps.onBlur?.(e);
 					}}
-					placeholderTextColor={Colors.gray400}
+					placeholderTextColor="#9CA3AF"
 					{...textInputProps}
 				/>
 
-				{rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
+				{rightIcon && (
+					<View className="pr-4 justify-center items-center">{rightIcon}</View>
+				)}
 			</View>
 
 			{(error || helperText) && (
-				<Text style={[styles.helperText, hasError && styles.errorText]}>
-					{error || helperText}
-				</Text>
+				<Text className={helperTextClasses}>{error || helperText}</Text>
 			)}
 		</View>
 	);
 };
-
-const styles = StyleSheet.create({
-	container: {
-		marginBottom: Spacing.md,
-	},
-
-	label: {
-		fontSize: Typography.sm,
-		fontWeight: Typography.medium,
-		color: Colors.textSecondary,
-		marginBottom: Spacing.xs,
-	},
-
-	labelError: {
-		color: Colors.error,
-	},
-
-	required: {
-		color: Colors.error,
-	},
-
-	inputContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: Colors.inputBorder,
-		borderRadius: BorderRadius.md,
-		backgroundColor: Colors.input,
-		minHeight: 48,
-	},
-
-	inputContainerFocused: {
-		borderColor: Colors.inputFocus,
-		borderWidth: 2,
-	},
-
-	inputContainerError: {
-		borderColor: Colors.inputError,
-		borderWidth: 2,
-	},
-
-	input: {
-		flex: 1,
-		fontSize: Typography.base,
-		color: Colors.textPrimary,
-		paddingHorizontal: Spacing.md,
-		paddingVertical: Spacing.sm,
-	},
-
-	inputWithLeftIcon: {
-		paddingLeft: Spacing.xs,
-	},
-
-	inputWithRightIcon: {
-		paddingRight: Spacing.xs,
-	},
-
-	leftIcon: {
-		paddingLeft: Spacing.md,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-
-	rightIcon: {
-		paddingRight: Spacing.md,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-
-	helperText: {
-		fontSize: Typography.xs,
-		color: Colors.textSecondary,
-		marginTop: Spacing.xs,
-		marginLeft: Spacing.xs,
-	},
-
-	errorText: {
-		color: Colors.error,
-	},
-});

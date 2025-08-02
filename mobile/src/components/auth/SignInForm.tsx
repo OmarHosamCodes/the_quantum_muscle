@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import type React from "react";
 import { useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Colors, Spacing, Typography } from "../../constants/theme";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../../hooks/useAuth";
 import { validateEmail } from "../../utils/validation";
 import { Button } from "../ui/Button";
@@ -66,12 +65,14 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 
 	return (
 		<AuthContainer>
-			<View style={styles.header}>
-				<Text style={styles.title}>Welcome Back</Text>
-				<Text style={styles.subtitle}>Sign in to your account</Text>
+			<View className="items-center mb-16">
+				<Text className="text-3xl font-bold text-gray-900 mb-2">
+					Welcome Back
+				</Text>
+				<Text className="text-lg text-gray-600">Sign in to your account</Text>
 			</View>
 
-			<View style={styles.form}>
+			<View className="mb-8">
 				<Input
 					label="Email"
 					value={email}
@@ -88,7 +89,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 						<Ionicons
 							name="mail-outline"
 							size={20}
-							color={emailError ? Colors.error : Colors.gray400}
+							color={emailError ? "#EF4444" : "#9CA3AF"}
 						/>
 					}
 					required
@@ -110,7 +111,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 						<Ionicons
 							name="lock-closed-outline"
 							size={20}
-							color={passwordError ? Colors.error : Colors.gray400}
+							color={passwordError ? "#EF4444" : "#9CA3AF"}
 						/>
 					}
 					rightIcon={
@@ -118,7 +119,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 							<Ionicons
 								name={showPassword ? "eye-off-outline" : "eye-outline"}
 								size={20}
-								color={Colors.gray400}
+								color="#9CA3AF"
 							/>
 						</TouchableOpacity>
 					}
@@ -126,10 +127,12 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 				/>
 
 				<TouchableOpacity
-					style={styles.forgotPassword}
+					className="self-end mb-6"
 					onPress={onNavigateToForgotPassword}
 				>
-					<Text style={styles.forgotPasswordText}>Forgot your password?</Text>
+					<Text className="text-sm text-indigo-600 font-medium">
+						Forgot your password?
+					</Text>
 				</TouchableOpacity>
 
 				<Button
@@ -138,70 +141,18 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 					loading={actionLoading}
 					disabled={actionLoading}
 					fullWidth
-					style={styles.signInButton}
+					style={{ marginTop: 16 }}
 				/>
 			</View>
 
-			<View style={styles.footer}>
-				<Text style={styles.footerText}>
+			<View className="items-center">
+				<Text className="text-base text-gray-600">
 					Don't have an account?{" "}
 					<TouchableOpacity onPress={onNavigateToSignUp}>
-						<Text style={styles.footerLink}>Sign up</Text>
+						<Text className="text-indigo-600 font-medium">Sign up</Text>
 					</TouchableOpacity>
 				</Text>
 			</View>
 		</AuthContainer>
 	);
 };
-
-const styles = StyleSheet.create({
-	header: {
-		alignItems: "center",
-		marginBottom: Spacing.xxxl,
-	},
-
-	title: {
-		fontSize: Typography["3xl"],
-		fontWeight: Typography.bold,
-		color: Colors.textPrimary,
-		marginBottom: Spacing.sm,
-	},
-
-	subtitle: {
-		fontSize: Typography.lg,
-		color: Colors.textSecondary,
-	},
-
-	form: {
-		marginBottom: Spacing.xl,
-	},
-
-	forgotPassword: {
-		alignSelf: "flex-end",
-		marginBottom: Spacing.lg,
-	},
-
-	forgotPasswordText: {
-		fontSize: Typography.sm,
-		color: Colors.primary,
-		fontWeight: Typography.medium,
-	},
-
-	signInButton: {
-		marginTop: Spacing.md,
-	},
-
-	footer: {
-		alignItems: "center",
-	},
-
-	footerText: {
-		fontSize: Typography.base,
-		color: Colors.textSecondary,
-	},
-
-	footerLink: {
-		color: Colors.primary,
-		fontWeight: Typography.medium,
-	},
-});

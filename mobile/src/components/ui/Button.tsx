@@ -1,18 +1,11 @@
 import type React from "react";
 import {
 	ActivityIndicator,
-	StyleSheet,
 	Text,
 	type TextStyle,
 	TouchableOpacity,
 	type ViewStyle,
 } from "react-native";
-import {
-	BorderRadius,
-	Colors,
-	Shadows,
-	Typography,
-} from "../../constants/theme";
 
 interface ButtonProps {
 	title: string;
@@ -39,132 +32,75 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
 	const isDisabled = disabled || loading;
 
+	// Base classes
+	let buttonClasses =
+		"rounded-md items-center justify-center flex-row shadow-sm";
+	let textClasses = "font-medium text-center";
+
+	// Variant classes
+	switch (variant) {
+		case "primary":
+			buttonClasses += " bg-indigo-600 border border-indigo-600";
+			textClasses += " text-white";
+			break;
+		case "secondary":
+			buttonClasses += " bg-emerald-600 border border-emerald-600";
+			textClasses += " text-white";
+			break;
+		case "outline":
+			buttonClasses += " bg-transparent border border-indigo-600";
+			textClasses += " text-indigo-600";
+			break;
+		case "ghost":
+			buttonClasses += " bg-transparent border-0";
+			textClasses += " text-indigo-600";
+			break;
+	}
+
+	// Size classes
+	switch (size) {
+		case "small":
+			buttonClasses += " px-3 py-2 min-h-[36px]";
+			textClasses += " text-sm";
+			break;
+		case "medium":
+			buttonClasses += " px-4 py-3 min-h-[48px]";
+			textClasses += " text-base";
+			break;
+		case "large":
+			buttonClasses += " px-5 py-4 min-h-[56px]";
+			textClasses += " text-lg";
+			break;
+	}
+
+	// Full width
+	if (fullWidth) {
+		buttonClasses += " w-full";
+	}
+
+	// Disabled state
+	if (isDisabled) {
+		buttonClasses += " bg-gray-300 border-gray-300 opacity-60";
+	}
+
+	const activityIndicatorColor =
+		variant === "outline" || variant === "ghost" ? "#6366F1" : "#FFFFFF";
+
 	return (
 		<TouchableOpacity
-			style={[
-				styles.base,
-				styles[variant],
-				styles[size],
-				fullWidth && styles.fullWidth,
-				isDisabled && styles.disabled,
-				style,
-			]}
+			className={buttonClasses}
+			style={style}
 			onPress={onPress}
 			disabled={isDisabled}
 			activeOpacity={0.8}
 		>
 			{loading ? (
-				<ActivityIndicator
-					size="small"
-					color={
-						variant === "outline" || variant === "ghost"
-							? Colors.primary
-							: Colors.textInverse
-					}
-				/>
+				<ActivityIndicator size="small" color={activityIndicatorColor} />
 			) : (
-				<Text
-					style={[
-						styles.text,
-						styles[`${variant}Text`],
-						styles[`${size}Text`],
-						textStyle,
-					]}
-				>
+				<Text className={textClasses} style={textStyle}>
 					{title}
 				</Text>
 			)}
 		</TouchableOpacity>
 	);
 };
-
-const styles = StyleSheet.create({
-	base: {
-		borderRadius: BorderRadius.md,
-		alignItems: "center",
-		justifyContent: "center",
-		flexDirection: "row",
-		...Shadows.sm,
-	},
-
-	// Variants
-	primary: {
-		backgroundColor: Colors.primary,
-		borderWidth: 1,
-		borderColor: Colors.primary,
-	},
-	secondary: {
-		backgroundColor: Colors.secondary,
-		borderWidth: 1,
-		borderColor: Colors.secondary,
-	},
-	outline: {
-		backgroundColor: "transparent",
-		borderWidth: 1,
-		borderColor: Colors.primary,
-	},
-	ghost: {
-		backgroundColor: "transparent",
-		borderWidth: 0,
-	},
-
-	// Sizes
-	small: {
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		minHeight: 36,
-	},
-	medium: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		minHeight: 48,
-	},
-	large: {
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		minHeight: 56,
-	},
-
-	// Full width
-	fullWidth: {
-		width: "100%",
-	},
-
-	// Disabled state
-	disabled: {
-		backgroundColor: Colors.gray300,
-		borderColor: Colors.gray300,
-		opacity: 0.6,
-	},
-
-	// Text styles
-	text: {
-		fontWeight: Typography.medium,
-		textAlign: "center",
-	},
-
-	// Text variants
-	primaryText: {
-		color: Colors.textInverse,
-	},
-	secondaryText: {
-		color: Colors.textInverse,
-	},
-	outlineText: {
-		color: Colors.primary,
-	},
-	ghostText: {
-		color: Colors.primary,
-	},
-
-	// Text sizes
-	smallText: {
-		fontSize: Typography.sm,
-	},
-	mediumText: {
-		fontSize: Typography.base,
-	},
-	largeText: {
-		fontSize: Typography.lg,
-	},
-});

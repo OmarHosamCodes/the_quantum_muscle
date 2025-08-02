@@ -4,10 +4,8 @@ import {
 	Platform,
 	SafeAreaView,
 	ScrollView,
-	StyleSheet,
 	View,
 } from "react-native";
-import { Colors, Spacing } from "../../constants/theme";
 
 interface AuthContainerProps {
 	children: React.ReactNode;
@@ -15,47 +13,24 @@ interface AuthContainerProps {
 
 export const AuthContainer: React.FC<AuthContainerProps> = ({ children }) => {
 	return (
-		<SafeAreaView style={styles.container}>
+		<SafeAreaView className="flex-1 bg-white">
 			<KeyboardAvoidingView
-				style={styles.keyboardAvoidingView}
+				className="flex-1"
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 			>
 				<ScrollView
-					style={styles.scrollView}
-					contentContainerStyle={styles.scrollContent}
+					className="flex-1"
+					contentContainerStyle={{
+						flexGrow: 1,
+						justifyContent: "center",
+						paddingHorizontal: 24,
+					}}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}
 				>
-					<View style={styles.content}>{children}</View>
+					<View className="w-full max-w-[400px] self-center">{children}</View>
 				</ScrollView>
 			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);
 };
-
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: Colors.background,
-	},
-
-	keyboardAvoidingView: {
-		flex: 1,
-	},
-
-	scrollView: {
-		flex: 1,
-	},
-
-	scrollContent: {
-		flexGrow: 1,
-		justifyContent: "center",
-		paddingHorizontal: Spacing.lg,
-	},
-
-	content: {
-		width: "100%",
-		maxWidth: 400,
-		alignSelf: "center",
-	},
-});
