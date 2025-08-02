@@ -1,3 +1,7 @@
+// Legacy types - deprecated in favor of Zod schemas
+// These are kept for backward compatibility with existing code
+// New code should use the types from ../schemas/auth.ts
+
 export interface User {
 	id: string;
 	email: string;

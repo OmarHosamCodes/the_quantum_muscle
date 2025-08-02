@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppState, type AppStateStatus } from "react-native";
-import { authService, supabase } from "../lib/supabase";
+import { authService, ensureUserRecord, supabase } from "../lib/supabase";
 import type {
 	AuthState,
 	SignInCredentials,
@@ -75,22 +75,55 @@ export const useAuth = () => {
 			async (event, session) => {
 				console.log("Auth state changed:", event, session?.user?.id);
 
-				setAuthState((prev) => ({
-					...prev,
-					user: mapSupabaseUser(session?.user ?? null),
-					session,
-					loading: false,
-					initialized: true,
-				}));
-
 				// Handle specific auth events
 				if (event === "SIGNED_OUT") {
 					// Clear any cached data here
 					console.log("User signed out");
-				} else if (event === "SIGNED_IN") {
+					setAuthState((prev) => ({
+						...prev,
+						user: null,
+						session: null,
+						loading: false,
+						initialized: true,
+					}));
+				} else if (event === "SIGNED_IN" && session?.user) {
 					console.log("User signed in");
+
+					// Ensure user record exists in our database
+					const userRecordResult = await ensureUserRecord(session.user);
+					if (userRecordResult.error) {
+						console.error(
+							"Failed to ensure user record:",
+							userRecordResult.error,
+						);
+						// You might want to handle this error by showing a message to the user
+					}
+
+					setAuthState((prev) => ({
+						...prev,
+						user: mapSupabaseUser(session.user),
+						session,
+						loading: false,
+						initialized: true,
+					}));
 				} else if (event === "TOKEN_REFRESHED") {
 					console.log("Token refreshed");
+					setAuthState((prev) => ({
+						...prev,
+						user: mapSupabaseUser(session?.user ?? null),
+						session,
+						loading: false,
+						initialized: true,
+					}));
+				} else {
+					// Handle other events (like initial session load)
+					setAuthState((prev) => ({
+						...prev,
+						user: mapSupabaseUser(session?.user ?? null),
+						session,
+						loading: false,
+						initialized: true,
+					}));
 				}
 			},
 		);
