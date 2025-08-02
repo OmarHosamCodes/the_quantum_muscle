@@ -2,12 +2,12 @@ import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Screen } from "@/src/components/ui/Screen";
 import { useAuth } from "@/src/hooks/useAuth";
+import { useTrainerPrograms } from "@/src/hooks/useProgramService";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-	Alert,
+	ActivityIndicator,
 	FlatList,
 	StyleSheet,
 	Text,
@@ -15,151 +15,85 @@ import {
 	View,
 } from "react-native";
 
-// Mock data for demonstration
-const mockPrograms = [
-	{
-		id: "1",
-		title: "Beginner Strength",
-		description:
-			"A comprehensive 8-week program designed for beginners looking to build strength and muscle.",
-		duration_weeks: 8,
-		difficulty: "Beginner",
-		exercises_count: 24,
-		enrolled_trainees: 12,
-		created_by: "trainer_1",
-		is_enrolled: true,
-		progress_percentage: 37.5,
-	},
-	{
-		id: "2",
-		title: "Advanced Powerlifting",
-		description:
-			"Advanced program focusing on the big three lifts: squat, bench, and deadlift.",
-		duration_weeks: 12,
-		difficulty: "Advanced",
-		exercises_count: 18,
-		enrolled_trainees: 8,
-		created_by: "trainer_1",
-		is_enrolled: false,
-		progress_percentage: 0,
-	},
-	{
-		id: "3",
-		title: "Cardio & Conditioning",
-		description:
-			"High-intensity cardio program to improve endurance and overall fitness.",
-		duration_weeks: 6,
-		difficulty: "Intermediate",
-		exercises_count: 15,
-		enrolled_trainees: 20,
-		created_by: "trainer_2",
-		is_enrolled: false,
-		progress_percentage: 0,
-	},
-];
+type FilterType = "all" | "enrolled" | "available";
 
-// Mock function to fetch programs
-const fetchPrograms = async (userType: string, userId: string) => {
-	// Simulate API delay
-	await new Promise((resolve) => setTimeout(resolve, 500));
-
-	if (userType === "trainer") {
-		// Trainers see their own programs
-		return mockPrograms.filter((program) => program.created_by === userId);
-	} else {
-		// Trainees see programs they're enrolled in or available programs
-		return mockPrograms;
-	}
-};
+interface Program {
+	id: string;
+	name: string;
+	description?: string | null;
+	created_at: string | null;
+	trainer_id: string | null;
+}
 
 export default function ProgramsScreen() {
 	const { user } = useAuth();
-	const [selectedFilter, setSelectedFilter] = useState<
-		"all" | "enrolled" | "available"
-	>("all");
-
-	const {
-		data: programs = [],
-		isLoading,
-		refetch,
-	} = useQuery({
-		queryKey: ["programs", user?.id, user?.user_type],
-		queryFn: () => fetchPrograms(user?.user_type || "trainee", user?.id || ""),
-		enabled: !!user,
-	});
+	const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
 
 	const isTrainer = user?.user_type === "trainer";
 
-	const filteredPrograms = programs.filter((program) => {
-		if (selectedFilter === "enrolled") return program.is_enrolled;
-		if (selectedFilter === "available") return !program.is_enrolled;
+	// Fetch trainer's programs if user is a trainer
+	const {
+		data: trainerPrograms = [],
+		isLoading: isLoadingTrainerPrograms,
+		refetch: refetchTrainerPrograms,
+	} = useTrainerPrograms(user?.id || "");
+
+	// TODO: Add hooks for trainee programs when implemented
+	// const { data: traineePrograms = [], isLoading: isLoadingTraineePrograms } = useTraineePrograms(user?.id || "");
+
+	const isLoading = isTrainer ? isLoadingTrainerPrograms : false;
+	const programs = isTrainer ? trainerPrograms : [];
+
+	const filteredPrograms = programs.filter((_program) => {
+		// TODO: Implement filtering logic based on enrollment status when trainee programs are available
+		if (selectedFilter === "enrolled") return false; // program.is_enrolled;
+		if (selectedFilter === "available") return true; // !program.is_enrolled;
 		return true;
 	});
 
 	const handleCreateProgram = () => {
-		// TODO: Navigate to create program screen
-		Alert.alert("Create Program", "This will open the program creation screen");
+		router.push("/create-program");
 	};
 
 	const handleProgramPress = (programId: string) => {
 		router.push(`/programs/${programId}`);
 	};
 
-	const renderProgram = ({ item }: { item: any }) => (
+	const renderProgram = ({ item }: { item: Program }) => (
 		<TouchableOpacity onPress={() => handleProgramPress(item.id)}>
 			<Card style={styles.programCard}>
 				<View style={styles.programHeader}>
 					<View style={styles.programInfo}>
-						<Text style={styles.programTitle}>{item.title}</Text>
-						<Text style={styles.programDescription}>{item.description}</Text>
+						<Text style={styles.programTitle}>{item.name}</Text>
+						<Text style={styles.programDescription}>
+							{item.description || "No description available"}
+						</Text>
 					</View>
-					{item.is_enrolled && (
-						<View style={styles.enrolledBadge}>
-							<Text style={styles.enrolledText}>Enrolled</Text>
-						</View>
-					)}
+					{/* TODO: Add enrollment badge when trainee functionality is implemented */}
 				</View>
 
 				<View style={styles.programStats}>
 					<View style={styles.stat}>
 						<Ionicons name="time-outline" size={16} color="#64748b" />
-						<Text style={styles.statText}>{item.duration_weeks} weeks</Text>
+						<Text style={styles.statText}>
+							{item.created_at
+								? new Date(item.created_at).toLocaleDateString()
+								: "No date"}
+						</Text>
 					</View>
+					{/* TODO: Add exercise count and trainee count when data is available */}
 					<View style={styles.stat}>
 						<Ionicons name="fitness-outline" size={16} color="#64748b" />
-						<Text style={styles.statText}>
-							{item.exercises_count} exercises
-						</Text>
-					</View>
-					<View style={styles.stat}>
-						<Ionicons name="people-outline" size={16} color="#64748b" />
-						<Text style={styles.statText}>
-							{item.enrolled_trainees} trainees
-						</Text>
+						<Text style={styles.statText}>View details</Text>
 					</View>
 				</View>
 
-				{item.is_enrolled && item.progress_percentage > 0 && (
-					<View style={styles.progressSection}>
-						<View style={styles.progressHeader}>
-							<Text style={styles.progressLabel}>Progress</Text>
-							<Text style={styles.progressPercentage}>
-								{item.progress_percentage}%
-							</Text>
-						</View>
-						<View style={styles.progressBar}>
-							<View
-								style={[
-									styles.progressFill,
-									{ width: `${item.progress_percentage}%` },
-								]}
-							/>
-						</View>
-					</View>
-				)}
+				{/* TODO: Add progress section when progress tracking is implemented */}
 
 				<View style={styles.difficultyBadge}>
-					<Text style={styles.difficultyText}>{item.difficulty}</Text>
+					<Text style={styles.difficultyText}>
+						{isTrainer ? "Created by you" : "Available"}
+					</Text>
 				</View>
 			</Card>
 		</TouchableOpacity>
@@ -199,26 +133,35 @@ export default function ProgramsScreen() {
 					Enrolled
 				</Text>
 			</TouchableOpacity>
-			{!isTrainer && (
-				<TouchableOpacity
+			<TouchableOpacity
+				style={[
+					styles.filterTab,
+					selectedFilter === "available" && styles.activeFilterTab,
+				]}
+				onPress={() => setSelectedFilter("available")}
+			>
+				<Text
 					style={[
-						styles.filterTab,
-						selectedFilter === "available" && styles.activeFilterTab,
+						styles.filterText,
+						selectedFilter === "available" && styles.activeFilterText,
 					]}
-					onPress={() => setSelectedFilter("available")}
 				>
-					<Text
-						style={[
-							styles.filterText,
-							selectedFilter === "available" && styles.activeFilterText,
-						]}
-					>
-						Available
-					</Text>
-				</TouchableOpacity>
-			)}
+					Available
+				</Text>
+			</TouchableOpacity>
 		</View>
 	);
+
+	if (isLoading) {
+		return (
+			<Screen>
+				<View style={styles.loadingContainer}>
+					<ActivityIndicator size="large" color="#0891b2" />
+					<Text style={styles.loadingText}>Loading programs...</Text>
+				</View>
+			</Screen>
+		);
+	}
 
 	return (
 		<Screen>
@@ -246,6 +189,8 @@ export default function ProgramsScreen() {
 					keyExtractor={(item) => item.id}
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={styles.programsList}
+					onRefresh={isTrainer ? refetchTrainerPrograms : undefined}
+					refreshing={isLoading}
 					ListEmptyComponent={
 						<View style={styles.emptyState}>
 							<Ionicons name="fitness-outline" size={48} color="#64748b" />
@@ -296,6 +241,16 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	loadingText: {
+		marginTop: 16,
+		fontSize: 16,
+		color: "#64748b",
 	},
 	filterTabs: {
 		flexDirection: "row",

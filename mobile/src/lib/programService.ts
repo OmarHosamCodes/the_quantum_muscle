@@ -17,6 +17,33 @@ export interface CreateWorkoutData {
 	image_url?: string;
 }
 
+// Interfaces for getProgramWorkouts function output
+export interface ExerciseSet {
+	id: number;
+	reps: number | null;
+	weight_kg: number | null;
+	set_index: number;
+}
+
+export interface Exercise {
+	id: string;
+	name: string;
+	target_muscle: string;
+	content_type: "image" | "video" | "text" | null;
+	content_url: string | null;
+	exercise_sets: ExerciseSet[];
+}
+
+export interface ProgramWorkout {
+	id: string;
+	name: string;
+	image_url: string | null;
+	created_at: string | null;
+	creator_id: string | null;
+	exercises: Exercise[];
+	order_index: number;
+}
+
 // Program service functions
 export const programService = {
 	// Create a new program
@@ -52,6 +79,26 @@ export const programService = {
 
 		if (error) {
 			throw new Error(`Failed to fetch trainer programs: ${error.message}`);
+		}
+
+		return data;
+	},
+
+	// Get a single program by ID
+	async getProgram(programId: string) {
+		const { data, error } = await supabase
+			.from("programs")
+			.select(`
+				id,
+				name,
+				created_at,
+				trainer_id
+			`)
+			.eq("id", programId)
+			.single();
+
+		if (error) {
+			throw new Error(`Failed to fetch program: ${error.message}`);
 		}
 
 		return data;
@@ -177,8 +224,8 @@ export const programService = {
 		return { success: true };
 	},
 
-	// Get all workouts in a program
-	async getProgramWorkouts(programId: string) {
+	// Get all workouts in a program with exercises and sets
+	async getProgramWorkouts(programId: string): Promise<ProgramWorkout[]> {
 		const { data, error } = await supabase
 			.from("program_workouts")
 			.select(`
@@ -189,7 +236,20 @@ export const programService = {
 					name,
 					image_url,
 					created_at,
-					creator_id
+					creator_id,
+					exercises (
+						id,
+						name,
+						target_muscle,
+						content_type,
+						content_url,
+						exercise_sets (
+							id,
+							reps,
+							weight_kg,
+							set_index
+						)
+					)
 				)
 			`)
 			.eq("program_id", programId)

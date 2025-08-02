@@ -1,13 +1,11 @@
-import { Button } from "@/src/components/ui/Button";
 import { Card } from "@/src/components/ui/Card";
 import { Screen } from "@/src/components/ui/Screen";
-import { useAuth } from "@/src/hooks/useAuth";
+import { useProgram, useProgramWorkouts } from "@/src/hooks/useProgramService";
+import type { Exercise } from "@/src/lib/programService";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
 import {
-	Alert,
+	ActivityIndicator,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -15,138 +13,45 @@ import {
 	View,
 } from "react-native";
 
-// Mock data for demonstration
-const mockProgramDetails = {
-	id: "1",
-	title: "Beginner Strength",
-	description:
-		"A comprehensive 8-week program designed for beginners looking to build strength and muscle. This program focuses on compound movements and progressive overload to help you build a solid foundation.",
-	duration_weeks: 8,
-	difficulty: "Beginner",
-	exercises_count: 24,
-	enrolled_trainees: 12,
-	created_by: "trainer_1",
-	is_enrolled: true,
-	progress_percentage: 37.5,
-	workouts: [
-		{
-			id: "1",
-			title: "Upper Body Strength",
-			description: "Focus on chest, shoulders, and triceps",
-			exercises: [
-				{ name: "Bench Press", sets: 3, reps: "8-10", weight: "Progressive" },
-				{
-					name: "Overhead Press",
-					sets: 3,
-					reps: "8-10",
-					weight: "Progressive",
-				},
-				{
-					name: "Dumbbell Rows",
-					sets: 3,
-					reps: "10-12",
-					weight: "Progressive",
-				},
-				{ name: "Tricep Dips", sets: 3, reps: "8-12", weight: "Bodyweight" },
-			],
-			duration_minutes: 45,
-			completed: true,
-		},
-		{
-			id: "2",
-			title: "Lower Body Power",
-			description: "Build strength in legs and core",
-			exercises: [
-				{ name: "Squats", sets: 4, reps: "6-8", weight: "Progressive" },
-				{ name: "Deadlifts", sets: 3, reps: "6-8", weight: "Progressive" },
-				{ name: "Lunges", sets: 3, reps: "10-12", weight: "Progressive" },
-				{ name: "Planks", sets: 3, reps: "30-60s", weight: "Bodyweight" },
-			],
-			duration_minutes: 50,
-			completed: false,
-		},
-		{
-			id: "3",
-			title: "Full Body Conditioning",
-			description: "High-intensity full body workout",
-			exercises: [
-				{ name: "Burpees", sets: 3, reps: "10-15", weight: "Bodyweight" },
-				{
-					name: "Mountain Climbers",
-					sets: 3,
-					reps: "30s",
-					weight: "Bodyweight",
-				},
-				{ name: "Jump Squats", sets: 3, reps: "12-15", weight: "Bodyweight" },
-				{ name: "Push-ups", sets: 3, reps: "8-12", weight: "Bodyweight" },
-			],
-			duration_minutes: 30,
-			completed: false,
-		},
-	],
-};
-
-// Mock function to fetch program details
-const fetchProgramDetails = async (programId: string) => {
-	// Simulate API delay
-	await new Promise((resolve) => setTimeout(resolve, 500));
-
-	// In a real app, this would fetch from Supabase
-	return mockProgramDetails;
-};
-
 export default function ProgramDetailScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
-	const { user } = useAuth();
-	const [selectedTab, setSelectedTab] = useState<
-		"overview" | "workouts" | "progress"
-	>("overview");
 
+	// Fetch program data
 	const {
 		data: program,
-		isLoading,
-		error,
-	} = useQuery({
-		queryKey: ["program", id],
-		queryFn: () => fetchProgramDetails(id),
-		enabled: !!id,
-	});
+		isLoading: isProgramLoading,
+		error: programError,
+	} = useProgram(id || "");
 
-	const isTrainer = user?.user_type === "trainer";
-	const isCreator = program?.created_by === user?.id;
+	// Fetch program workouts
+	const { data: programWorkouts = [], isLoading: isWorkoutsLoading } =
+		useProgramWorkouts(id || "");
 
-	const handleStartWorkout = (workoutId: string) => {
+	const isLoading = isProgramLoading || isWorkoutsLoading;
+
+	const handleWorkoutPress = (workoutId: string) => {
 		router.push(`/workout/${workoutId}`);
 	};
 
-	const handleEditProgram = () => {
-		if (!isTrainer || !isCreator) {
-			Alert.alert(
-				"Access Denied",
-				"Only the program creator can edit this program.",
-			);
-			return;
-		}
-		// TODO: Navigate to edit program screen
-		Alert.alert("Edit Program", "This will open the program editing screen");
-	};
-
-	const handleEnrollProgram = () => {
-		// TODO: Implement enrollment logic
-		Alert.alert("Enroll", "You have been enrolled in this program!");
+	// Helper function to get total sets for an exercise
+	const getExerciseSetsInfo = (exercise: Exercise) => {
+		const totalSets = exercise.exercise_sets.length;
+		const repsInfo = exercise.exercise_sets[0]?.reps || "varies";
+		return `${totalSets} sets${repsInfo !== "varies" ? `, ${repsInfo} reps` : ""}`;
 	};
 
 	if (isLoading) {
 		return (
 			<Screen>
 				<View style={styles.loadingContainer}>
+					<ActivityIndicator size="large" color="#0891b2" />
 					<Text style={styles.loadingText}>Loading program...</Text>
 				</View>
 			</Screen>
 		);
 	}
 
-	if (error || !program) {
+	if (programError || !program) {
 		return (
 			<Screen>
 				<View style={styles.errorContainer}>
@@ -167,212 +72,89 @@ export default function ProgramDetailScreen() {
 					>
 						<Ionicons name="arrow-back" size={24} color="#1e293b" />
 					</TouchableOpacity>
-					<Text style={styles.title}>{program.title}</Text>
+					<Text style={styles.title}>{program.name}</Text>
 					<TouchableOpacity style={styles.moreButton}>
 						<Ionicons name="ellipsis-vertical" size={24} color="#1e293b" />
 					</TouchableOpacity>
 				</View>
 
-				{/* Program Info Card */}
-				<Card style={styles.programInfoCard}>
-					<Text style={styles.programDescription}>{program.description}</Text>
-
-					<View style={styles.programStats}>
-						<View style={styles.stat}>
-							<Ionicons name="time-outline" size={20} color="#0891b2" />
-							<Text style={styles.statValue}>
-								{program.duration_weeks} weeks
-							</Text>
-						</View>
-						<View style={styles.stat}>
-							<Ionicons name="fitness-outline" size={20} color="#0891b2" />
-							<Text style={styles.statValue}>
-								{program.exercises_count} exercises
-							</Text>
-						</View>
-						<View style={styles.stat}>
-							<Ionicons name="people-outline" size={20} color="#0891b2" />
-							<Text style={styles.statValue}>
-								{program.enrolled_trainees} trainees
-							</Text>
-						</View>
+				{/* Add Workout Button */}
+				<TouchableOpacity
+					style={styles.addWorkoutButton}
+					onPress={() => router.push(`/create-workout?programId=${id}`)}
+					activeOpacity={0.7}
+				>
+					<View style={styles.addWorkoutContent}>
+						<Ionicons name="add-circle" size={24} color="#0891b2" />
+						<Text style={styles.addWorkoutText}>Add Workout</Text>
 					</View>
+				</TouchableOpacity>
 
-					{program.is_enrolled && (
-						<View style={styles.progressSection}>
-							<View style={styles.progressHeader}>
-								<Text style={styles.progressLabel}>Your Progress</Text>
-								<Text style={styles.progressPercentage}>
-									{program.progress_percentage}%
-								</Text>
-							</View>
-							<View style={styles.progressBar}>
-								<View
-									style={[
-										styles.progressFill,
-										{ width: `${program.progress_percentage}%` },
-									]}
-								/>
-							</View>
-						</View>
-					)}
-				</Card>
-
-				{/* Action Buttons */}
-				<View style={styles.actionButtons}>
-					{isTrainer && isCreator ? (
-						<Button title="Edit Program" onPress={handleEditProgram} />
-					) : !program.is_enrolled ? (
-						<Button title="Enroll in Program" onPress={handleEnrollProgram} />
-					) : (
-						<Button
-							title="Continue Program"
-							onPress={() => setSelectedTab("workouts")}
-						/>
-					)}
-				</View>
-
-				{/* Tab Navigation */}
-				<View style={styles.tabContainer}>
-					<TouchableOpacity
-						style={[styles.tab, selectedTab === "overview" && styles.activeTab]}
-						onPress={() => setSelectedTab("overview")}
-					>
-						<Text
-							style={[
-								styles.tabText,
-								selectedTab === "overview" && styles.activeTabText,
-							]}
-						>
-							Overview
-						</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={[styles.tab, selectedTab === "workouts" && styles.activeTab]}
-						onPress={() => setSelectedTab("workouts")}
-					>
-						<Text
-							style={[
-								styles.tabText,
-								selectedTab === "workouts" && styles.activeTabText,
-							]}
-						>
-							Workouts
-						</Text>
-					</TouchableOpacity>
-					<TouchableOpacity
-						style={[styles.tab, selectedTab === "progress" && styles.activeTab]}
-						onPress={() => setSelectedTab("progress")}
-					>
-						<Text
-							style={[
-								styles.tabText,
-								selectedTab === "progress" && styles.activeTabText,
-							]}
-						>
-							Progress
-						</Text>
-					</TouchableOpacity>
-				</View>
-
-				{/* Tab Content */}
-				{selectedTab === "overview" && (
-					<View style={styles.tabContent}>
-						<Card style={styles.section}>
-							<Text style={styles.sectionTitle}>Program Overview</Text>
-							<View style={styles.overviewItem}>
-								<Ionicons name="calendar-outline" size={20} color="#64748b" />
-								<Text style={styles.overviewText}>
-									Duration: {program.duration_weeks} weeks
-								</Text>
-							</View>
-							<View style={styles.overviewItem}>
-								<Ionicons
-									name="trending-up-outline"
-									size={20}
-									color="#64748b"
-								/>
-								<Text style={styles.overviewText}>
-									Difficulty: {program.difficulty}
-								</Text>
-							</View>
-							<View style={styles.overviewItem}>
-								<Ionicons name="fitness-outline" size={20} color="#64748b" />
-								<Text style={styles.overviewText}>
-									Total Workouts: {program.workouts.length}
-								</Text>
-							</View>
-						</Card>
-					</View>
-				)}
-
-				{selectedTab === "workouts" && (
-					<View style={styles.tabContent}>
-						{program.workouts.map((workout, index) => (
-							<Card key={workout.id} style={styles.workoutCard}>
-								<View style={styles.workoutHeader}>
-									<View style={styles.workoutInfo}>
-										<Text style={styles.workoutTitle}>{workout.title}</Text>
-										<Text style={styles.workoutDescription}>
-											{workout.description}
-										</Text>
-										<Text style={styles.workoutDuration}>
-											{workout.duration_minutes} minutes
-										</Text>
-									</View>
-									{workout.completed && (
-										<View style={styles.completedBadge}>
-											<Ionicons
-												name="checkmark-circle"
-												size={24}
-												color="#10b981"
-											/>
-										</View>
-									)}
-								</View>
-
-								<View style={styles.exercisesList}>
-									{workout.exercises
-										.slice(0, 3)
-										.map((exercise, exerciseIndex) => (
-											<Text key={exerciseIndex} style={styles.exerciseItem}>
-												• {exercise.name} ({exercise.sets} sets, {exercise.reps}
-												)
+				{/* Workouts List */}
+				<View style={styles.workoutsContainer}>
+					{programWorkouts
+						.sort((a, b) => a.order_index - b.order_index)
+						.map((workout) => (
+							<TouchableOpacity
+								key={workout.id}
+								onPress={() => handleWorkoutPress(workout.id)}
+								activeOpacity={0.7}
+							>
+								<Card style={styles.workoutCard}>
+									<View style={styles.workoutHeader}>
+										<View style={styles.workoutInfo}>
+											<Text style={styles.workoutTitle}>{workout.name}</Text>
+											<Text style={styles.workoutStats}>
+												{workout.exercises.length} exercises
 											</Text>
+											{workout.created_at && (
+												<Text style={styles.workoutDate}>
+													Created:{" "}
+													{new Date(workout.created_at).toLocaleDateString()}
+												</Text>
+											)}
+										</View>
+										{workout.image_url && (
+											<View style={styles.workoutImagePlaceholder}>
+												<Ionicons
+													name="image-outline"
+													size={24}
+													color="#64748b"
+												/>
+											</View>
+										)}
+									</View>
+
+									<View style={styles.exercisesList}>
+										{workout.exercises.slice(0, 3).map((exercise) => (
+											<View key={exercise.id} style={styles.exerciseItem}>
+												<Text style={styles.exerciseName}>
+													• {exercise.name}
+												</Text>
+												<Text style={styles.exerciseDetails}>
+													{getExerciseSetsInfo(exercise)} •{" "}
+													{exercise.target_muscle}
+												</Text>
+											</View>
 										))}
-									{workout.exercises.length > 3 && (
-										<Text style={styles.moreExercises}>
-											+{workout.exercises.length - 3} more exercises
-										</Text>
-									)}
-								</View>
+										{workout.exercises.length > 3 && (
+											<Text style={styles.moreExercises}>
+												+{workout.exercises.length - 3} more exercises
+											</Text>
+										)}
+									</View>
 
-								<TouchableOpacity
-									style={styles.startWorkoutButton}
-									onPress={() => handleStartWorkout(workout.id)}
-								>
-									<Text style={styles.startWorkoutText}>
-										{workout.completed ? "Repeat Workout" : "Start Workout"}
-									</Text>
-									<Ionicons name="play" size={16} color="#ffffff" />
-								</TouchableOpacity>
-							</Card>
+									<View style={styles.workoutFooter}>
+										<Ionicons
+											name="chevron-forward"
+											size={20}
+											color="#64748b"
+										/>
+									</View>
+								</Card>
+							</TouchableOpacity>
 						))}
-					</View>
-				)}
-
-				{selectedTab === "progress" && (
-					<View style={styles.tabContent}>
-						<Card style={styles.section}>
-							<Text style={styles.sectionTitle}>Progress Tracking</Text>
-							<Text style={styles.progressText}>
-								Track your progress through this program. Complete workouts to
-								see your advancement.
-							</Text>
-							{/* TODO: Add progress charts and metrics */}
-						</Card>
-					</View>
-				)}
+				</View>
 			</ScrollView>
 		</Screen>
 	);
@@ -404,7 +186,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginBottom: 16,
+		marginBottom: 24,
 	},
 	backButton: {
 		padding: 4,
@@ -419,112 +201,29 @@ const styles = StyleSheet.create({
 	moreButton: {
 		padding: 4,
 	},
-	programInfoCard: {
+	addWorkoutButton: {
+		backgroundColor: "#f0f9ff",
+		borderWidth: 2,
+		borderColor: "#0891b2",
+		borderStyle: "dashed",
+		borderRadius: 12,
 		padding: 16,
-		marginBottom: 16,
+		marginBottom: 24,
+		alignItems: "center",
+		justifyContent: "center",
 	},
-	programDescription: {
+	addWorkoutContent: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+	},
+	addWorkoutText: {
 		fontSize: 16,
-		color: "#1e293b",
-		lineHeight: 24,
-		marginBottom: 16,
-	},
-	programStats: {
-		flexDirection: "row",
-		justifyContent: "space-around",
-		marginBottom: 16,
-	},
-	stat: {
-		alignItems: "center",
-	},
-	statValue: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#1e293b",
-		marginTop: 4,
-	},
-	progressSection: {
-		marginTop: 8,
-	},
-	progressHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 4,
-	},
-	progressLabel: {
-		fontSize: 14,
-		color: "#64748b",
-	},
-	progressPercentage: {
-		fontSize: 14,
 		fontWeight: "600",
 		color: "#0891b2",
 	},
-	progressBar: {
-		height: 6,
-		backgroundColor: "#e2e8f0",
-		borderRadius: 3,
-		overflow: "hidden",
-	},
-	progressFill: {
-		height: "100%",
-		backgroundColor: "#0891b2",
-	},
-	actionButtons: {
-		marginBottom: 16,
-	},
-	tabContainer: {
-		flexDirection: "row",
-		backgroundColor: "#f1f5f9",
-		borderRadius: 8,
-		padding: 4,
-		marginBottom: 16,
-	},
-	tab: {
-		flex: 1,
-		paddingVertical: 8,
-		paddingHorizontal: 12,
-		borderRadius: 6,
-		alignItems: "center",
-	},
-	activeTab: {
-		backgroundColor: "#ffffff",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.1,
-		shadowRadius: 2,
-		elevation: 2,
-	},
-	tabText: {
-		fontSize: 14,
-		fontWeight: "500",
-		color: "#64748b",
-	},
-	activeTabText: {
-		color: "#0891b2",
-	},
-	tabContent: {
+	workoutsContainer: {
 		gap: 16,
-	},
-	section: {
-		padding: 16,
-	},
-	sectionTitle: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#1e293b",
-		marginBottom: 16,
-	},
-	overviewItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 12,
-	},
-	overviewText: {
-		fontSize: 14,
-		color: "#1e293b",
-		marginLeft: 12,
 	},
 	workoutCard: {
 		padding: 16,
@@ -544,49 +243,47 @@ const styles = StyleSheet.create({
 		color: "#1e293b",
 		marginBottom: 4,
 	},
-	workoutDescription: {
+	workoutStats: {
 		fontSize: 14,
 		color: "#64748b",
-		marginBottom: 4,
+		marginBottom: 2,
 	},
-	workoutDuration: {
+	workoutDate: {
 		fontSize: 12,
 		color: "#64748b",
 	},
-	completedBadge: {
-		marginLeft: 8,
+	workoutImagePlaceholder: {
+		width: 40,
+		height: 40,
+		backgroundColor: "#f1f5f9",
+		borderRadius: 8,
+		justifyContent: "center",
+		alignItems: "center",
+		marginLeft: 12,
 	},
 	exercisesList: {
 		marginBottom: 12,
 	},
 	exerciseItem: {
+		marginBottom: 6,
+	},
+	exerciseName: {
 		fontSize: 14,
+		color: "#1e293b",
+		fontWeight: "500",
+	},
+	exerciseDetails: {
+		fontSize: 12,
 		color: "#64748b",
-		marginBottom: 4,
+		marginTop: 2,
 	},
 	moreExercises: {
 		fontSize: 12,
 		color: "#0891b2",
 		fontStyle: "italic",
+		marginTop: 4,
 	},
-	startWorkoutButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#0891b2",
-		paddingVertical: 12,
-		paddingHorizontal: 16,
-		borderRadius: 8,
-	},
-	startWorkoutText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#ffffff",
-		marginRight: 8,
-	},
-	progressText: {
-		fontSize: 14,
-		color: "#64748b",
-		lineHeight: 20,
+	workoutFooter: {
+		alignItems: "flex-end",
 	},
 });

@@ -25,6 +25,15 @@ export const useTrainerPrograms = (trainerId: string) => {
 	});
 };
 
+export const useProgram = (programId: string) => {
+	return useQuery({
+		queryKey: ["program", programId],
+		queryFn: () => programService.getProgram(programId),
+		enabled: !!programId,
+		staleTime: 5 * 60 * 1000, // 5 minutes
+	});
+};
+
 export const useAssignProgram = () => {
 	const queryClient = useQueryClient();
 
