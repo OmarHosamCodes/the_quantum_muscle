@@ -3,7 +3,6 @@ import { Card } from "@/src/components/ui/Card";
 import { Screen } from "@/src/components/ui/Screen";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useMyClients } from "@/src/hooks/useMyClients";
-import { useMyProgram } from "@/src/hooks/useMyProgram";
 import { Ionicons } from "@expo/vector-icons";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
